@@ -95,3 +95,22 @@ class BlogPostAPITestCase(APITestCase):
 
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_login_and_update(self):
+        data = {
+            'username': 'khan',
+            'password': 'some_random_password'
+        }
+        url = api_reverse('api-login')
+        response = self.client.post(url, data)
+        print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        token = response.data.get('token')
+        if token is not None:
+            blog_post = Blog.objects.first()
+            data = {"title": "random title", "content": "random content"}
+            url = blog_post.get_api_url()
+            self.client.credentials(HTTP_AUTHORIZED='JWT ' + token)
+
+            response = self.client.put(url, data, format='json')
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

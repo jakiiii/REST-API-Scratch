@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 
+from rest_framework.reverse import reverse as api_reverse
+
 
 # Create your models here.
 class Blog(models.Model):
@@ -11,3 +13,10 @@ class Blog(models.Model):
 
     def __str__(self):
         return self.user.username
+
+    @property
+    def owner(self):
+        return self.user
+
+    def get_api_url(self, request=None):
+        return api_reverse("post-rud", kwargs={"pk": self.pk}, request=request)

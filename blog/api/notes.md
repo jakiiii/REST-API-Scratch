@@ -2,6 +2,8 @@
     - Retrieve Update and Delete
     - Create, List and Search
     
+    - Permission (JWT -> J. Walter Thompson)
+    
 2. HTTP Methods
     - GET, POST, PUT, PATCH, DELETE
     

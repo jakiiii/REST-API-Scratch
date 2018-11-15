@@ -3,6 +3,10 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework.reverse import reverse as api_reverse
+from rest_framework_jwt.settings import api_settings
+
+payload_handler = api_settings.JWT_PAYLOAD_HANDLER
+encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 from blog.models import Blog
 
@@ -52,3 +56,42 @@ class BlogPostAPITestCase(APITestCase):
 
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_item_with_user(self):
+        blog_post = Blog.objects.first()
+        data = {"title": "random title", "content": "random content"}
+        url = blog_post.get_api_url()
+        user_obj = User.objects.first()
+        payload = payload_handler(user_obj)
+        token_rsp = encode_handler(payload)
+        self.client.credentials(HTTP_AUTHORIZED='JWT ' + token_rsp)
+
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_post_item_with_user(self):
+        user_obj = User.objects.first()
+        payload = payload_handler(user_obj)
+        token_rsp = encode_handler(payload)
+        self.client.credentials(HTTP_AUTHORIZATION='JWT ' + token_rsp)
+        data = {"title": "random title", "content": "random content"}
+        url = api_reverse("post-list")
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_user_ownership(self):
+        owner = User.objects.create(username='abdullah')
+        blog_post = Blog.objects.create(user=owner, title="whatever title", content="whatever content")
+
+        user_obj = User.objects.first()
+        self.assertNotEqual(user_obj.username, owner.username)
+
+        payload = payload_handler(user_obj)
+        token_rsp = encode_handler(payload)
+        self.client.credentials(HTTP_AUTHORIZATION='JWT ' + token_rsp)
+
+        data = {"title": "random title", "content": "random content"}
+        url = blog_post.get_api_url()
+
+        response = self.client.put(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
